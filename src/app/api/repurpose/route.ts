@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     // Normalize: AI sometimes returns objects/arrays instead of strings
     const requiredKeys: (keyof PlatformOutputs)[] = [
-      "twitter", "linkedin", "instagram", "email", "reddit",
+      "twitter", "linkedin", "instagram", "tiktok", "youtube", "email", "reddit",
     ];
 
     const outputs: Record<string, string> = {};

@@ -1,6 +1,8 @@
 import { Hero } from "@/components/hero";
 import { HowItWorks } from "@/components/how-it-works";
+import { DemoSection } from "@/components/demo-section";
 import { RepurposeForm } from "@/components/repurpose-form";
+import { TrustSection } from "@/components/trust-section";
 import { PricingSection } from "@/components/pricing-section";
 import { FaqSection } from "@/components/faq-section";
 import { Footer } from "@/components/footer";
@@ -36,7 +38,9 @@ export default async function Home() {
       <Navbar user={user} credits={credits} />
       <Hero />
       <HowItWorks />
+      <DemoSection />
       <RepurposeForm user={user} initialCredits={credits} />
+      <TrustSection />
       <PricingSection />
       <FaqSection />
       <Footer />

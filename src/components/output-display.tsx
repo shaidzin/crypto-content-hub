@@ -3,13 +3,15 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlatformTab } from "@/components/platform-tab";
 import { PLATFORMS, type PlatformOutputs } from "@/types";
-import { Hash, Briefcase, Camera, Mail, MessageCircle } from "lucide-react";
+import { Hash, Briefcase, Camera, Mail, MessageCircle, Clapperboard, Play } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const iconMap: Record<string, LucideIcon> = {
   twitter: Hash,
   linkedin: Briefcase,
   instagram: Camera,
+  tiktok: Clapperboard,
+  youtube: Play,
   mail: Mail,
   "message-circle": MessageCircle,
 };
@@ -30,9 +32,9 @@ export function OutputDisplay({ outputs }: OutputDisplayProps) {
               <TabsTrigger
                 key={platform.key}
                 value={platform.key}
-                className="flex-1 min-w-[100px] gap-1.5 text-xs sm:text-sm"
+                className="flex-1 min-w-[80px] gap-1 text-xs sm:text-sm px-2"
               >
-                {Icon && <Icon className="w-4 h-4" />}
+                {Icon && <Icon className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">{platform.label}</span>
                 <span className="sm:hidden">{platform.label.split("/")[0]}</span>
               </TabsTrigger>

@@ -35,7 +35,7 @@ export function PricingSection() {
           Simple Credit Pricing
         </h2>
         <p className="text-muted-foreground text-center mb-4 max-w-xl mx-auto">
-          Pay only for what you use. 1 credit = 1 repurpose into 5 platforms.
+          Pay only for what you use. 1 credit = 1 repurpose into 7 platforms.
           Starting at just $1.
         </p>
         <p className="text-sm text-center text-green-400 mb-12">
@@ -86,7 +86,7 @@ export function PricingSection() {
 
         <div className="mt-12 max-w-md mx-auto space-y-2">
           {[
-            "1 credit = 1 repurpose into 5 platforms",
+            "1 credit = 1 repurpose into 7 platforms",
             "Credits never expire",
             "No subscription — buy only when you need",
             "7-day money-back guarantee",

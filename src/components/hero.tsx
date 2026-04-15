@@ -16,28 +16,27 @@ export function Hero() {
         </Badge>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">
-          Turn One Blog Post Into
-          <br />5 Platform-Ready Posts
-          <br />in Seconds
+          One Blog Post.
+          <br />7 Platforms.
+          <br />10 Seconds.
         </h1>
 
         <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-          Paste your article, and AI instantly creates optimized content for
-          Twitter/X, LinkedIn, Instagram, Email, and Reddit. Sign up and get 3
-          free credits — starting at just $1 for more.
+          Paste any article and get ready-to-publish content for Twitter/X,
+          LinkedIn, Instagram, TikTok, YouTube, Email, and Reddit — instantly.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button size="lg" className="text-lg px-8 py-6" asChild>
-            <a href="#repurpose">Try It Free</a>
+            <a href="#repurpose">Get 7 Posts in 10 Seconds</a>
           </Button>
           <Button size="lg" variant="outline" className="text-lg px-8 py-6" asChild>
-            <a href="#pricing">View Pricing</a>
+            <a href="#demo">See Example</a>
           </Button>
         </div>
 
         <p className="mt-6 text-sm text-muted-foreground">
-          3 free credits on signup. Credits start at $1.
+          3 free credits on signup. No subscription — credits start at $1.
         </p>
       </div>
     </section>

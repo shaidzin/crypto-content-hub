@@ -12,7 +12,7 @@ const steps = [
     icon: Sparkles,
     title: "AI Generates Variants",
     description:
-      "Our AI instantly creates optimized versions for 5 different platforms.",
+      "Our AI instantly creates optimized versions for 7 different platforms.",
   },
   {
     icon: Send,

@@ -9,12 +9,12 @@ const faqs = [
   {
     question: "What content formats does ContentSpark generate?",
     answer:
-      "ContentSpark generates 5 platform-optimized versions of your content: a Twitter/X thread (4-8 tweets), a LinkedIn post, an Instagram caption with hashtags, an email newsletter version with subject line, and a Reddit discussion post.",
+      "ContentSpark generates 7 platform-optimized versions of your content: a Twitter/X thread, a LinkedIn post, an Instagram caption with hashtags, a TikTok video script, a YouTube description with timestamps, an email newsletter with subject line, and a Reddit discussion post.",
   },
   {
     question: "How do credits work?",
     answer:
-      "1 credit = 1 repurpose into all 5 platforms. Sign up free and get 3 credits to try it out. Need more? Buy credit packs starting at just $1 for 5 credits. Credits never expire.",
+      "1 credit = 1 repurpose into all 7 platforms. Sign up free and get 3 credits to try it out. Need more? Buy credit packs starting at just $1 for 5 credits. Credits never expire.",
   },
   {
     question: "How much does it cost?",
