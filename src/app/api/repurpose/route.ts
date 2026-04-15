@@ -24,7 +24,7 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
-function parseAIResponse(text: string): PlatformOutputs {
+function parseAIResponse(text: string): Record<string, unknown> {
   try {
     return JSON.parse(text);
   } catch {
@@ -129,17 +129,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const outputs = parseAIResponse(content);
+    const raw = parseAIResponse(content);
 
+    // Normalize: AI sometimes returns objects/arrays instead of strings
     const requiredKeys: (keyof PlatformOutputs)[] = [
       "twitter", "linkedin", "instagram", "email", "reddit",
     ];
+
+    const outputs: Record<string, string> = {};
     for (const key of requiredKeys) {
-      if (!outputs[key] || typeof outputs[key] !== "string") {
+      const val = raw[key];
+      if (!val) {
+        console.error(`Missing key "${key}" in AI response:`, JSON.stringify(raw).slice(0, 500));
         return NextResponse.json(
           { error: "AI generated incomplete content. Please try again." },
           { status: 500 }
         );
+      }
+      // Convert arrays/objects to string
+      if (typeof val === "string") {
+        outputs[key] = val;
+      } else if (Array.isArray(val)) {
+        outputs[key] = val.join("\n\n");
+      } else if (typeof val === "object") {
+        outputs[key] = Object.values(val).join("\n\n");
+      } else {
+        outputs[key] = String(val);
       }
     }
 
@@ -150,7 +165,7 @@ export async function POST(request: NextRequest) {
       .eq("id", user.id);
 
     return NextResponse.json({
-      outputs,
+      outputs: outputs as unknown as PlatformOutputs,
       creditsRemaining: profile.credits - 1,
     });
   } catch (error: unknown) {
