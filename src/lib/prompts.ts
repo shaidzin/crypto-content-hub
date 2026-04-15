@@ -1,7 +1,6 @@
-export const SYSTEM_PROMPT = `You are a content repurposing expert. Given a blog post or article, you create platform-optimized versions for different social media and content platforms. Each version should capture the key insights while matching the platform's tone, format, and best practices. Always output valid JSON with no markdown code fences.`;
+export const SYSTEM_PROMPT = `You are a content creation and repurposing expert. You create platform-optimized content for different social media and content platforms. Each version should match the platform's tone, format, and best practices. Always output valid JSON with no markdown code fences.`;
 
-export function buildUserPrompt(articleText: string): string {
-  return `Repurpose the following article for 7 platforms. Return ONLY a valid JSON object (no markdown, no code fences) with these exact keys:
+const PLATFORM_INSTRUCTIONS = `Return ONLY a valid JSON object (no markdown, no code fences) with these exact keys:
 
 1. "twitter" - A Twitter/X thread of 4-8 tweets. Number each tweet (1/, 2/, etc.). Each tweet must be under 280 characters. Start with a compelling hook. End with a CTA. Separate tweets with two newlines.
 
@@ -17,10 +16,31 @@ export function buildUserPrompt(articleText: string): string {
 
 7. "reddit" - A Reddit post. Start with "Title: " on the first line, then a blank line, then the body (200-300 words). Discussion-oriented tone, no self-promotion. End with a thought-provoking question to encourage comments.
 
+Return ONLY the JSON object. No explanations, no markdown formatting.`;
+
+export function buildArticlePrompt(articleText: string): string {
+  return `Repurpose the following article for 7 platforms. ${PLATFORM_INSTRUCTIONS}
+
 ARTICLE:
 ---
 ${articleText}
----
+---`;
+}
 
-Return ONLY the JSON object. No explanations, no markdown formatting.`;
+export function buildTopicPrompt(topic: string): string {
+  return `Write original content about the following topic for 7 platforms. Create engaging, insightful content based on this topic/prompt. ${PLATFORM_INSTRUCTIONS}
+
+TOPIC/PROMPT:
+---
+${topic}
+---`;
+}
+
+export function buildUrlPrompt(articleText: string, url: string): string {
+  return `Repurpose the following article (from ${url}) for 7 platforms. ${PLATFORM_INSTRUCTIONS}
+
+ARTICLE:
+---
+${articleText}
+---`;
 }

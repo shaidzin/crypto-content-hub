@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/lib/openai";
-import { SYSTEM_PROMPT, buildUserPrompt } from "@/lib/prompts";
+import { SYSTEM_PROMPT, buildArticlePrompt, buildTopicPrompt, buildUrlPrompt } from "@/lib/prompts";
 import { createServiceClient } from "@/lib/supabase-server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -8,7 +8,6 @@ import type { PlatformOutputs } from "@/types";
 
 export const maxDuration = 30;
 
-// Simple in-memory rate limiting
 const rateLimitMap = new Map<string, number[]>();
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX = 5;
@@ -43,7 +42,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Authenticate user
     const cookieStore = cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -69,7 +67,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check credits using service role (bypasses RLS)
     const serviceClient = createServiceClient();
     const { data: profile } = await serviceClient
       .from("profiles")
@@ -84,37 +81,62 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate input
     const body = await request.json();
-    const { text } = body;
+    const { text, mode, url } = body;
 
-    if (!text || typeof text !== "string") {
-      return NextResponse.json(
-        { error: "Please provide content to repurpose." },
-        { status: 400 }
-      );
+    // Build the prompt based on mode
+    let userPrompt: string;
+
+    if (mode === "topic") {
+      if (!text || typeof text !== "string" || text.length < 10) {
+        return NextResponse.json(
+          { error: "Please describe what you want to write about (at least 10 characters)." },
+          { status: 400 }
+        );
+      }
+      if (text.length > 2000) {
+        return NextResponse.json(
+          { error: "Topic description must be under 2,000 characters." },
+          { status: 400 }
+        );
+      }
+      userPrompt = buildTopicPrompt(text);
+    } else if (mode === "url") {
+      if (!text || typeof text !== "string" || text.length < 100) {
+        return NextResponse.json(
+          { error: "Could not extract enough content from that URL." },
+          { status: 400 }
+        );
+      }
+      userPrompt = buildUrlPrompt(text.slice(0, 10000), url || "");
+    } else {
+      // Default: article mode
+      if (!text || typeof text !== "string") {
+        return NextResponse.json(
+          { error: "Please provide content to repurpose." },
+          { status: 400 }
+        );
+      }
+      if (text.length < 100) {
+        return NextResponse.json(
+          { error: "Content must be at least 100 characters long." },
+          { status: 400 }
+        );
+      }
+      if (text.length > 10000) {
+        return NextResponse.json(
+          { error: "Content must be under 10,000 characters." },
+          { status: 400 }
+        );
+      }
+      userPrompt = buildArticlePrompt(text);
     }
 
-    if (text.length < 100) {
-      return NextResponse.json(
-        { error: "Content must be at least 100 characters long." },
-        { status: 400 }
-      );
-    }
-
-    if (text.length > 10000) {
-      return NextResponse.json(
-        { error: "Content must be under 10,000 characters." },
-        { status: 400 }
-      );
-    }
-
-    // Call OpenAI
     const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: buildUserPrompt(text) },
+        { role: "user", content: userPrompt },
       ],
       temperature: 0.7,
       max_tokens: 4000,
@@ -131,7 +153,6 @@ export async function POST(request: NextRequest) {
 
     const raw = parseAIResponse(content);
 
-    // Normalize: AI sometimes returns objects/arrays instead of strings
     const requiredKeys: (keyof PlatformOutputs)[] = [
       "twitter", "linkedin", "instagram", "tiktok", "youtube", "email", "reddit",
     ];
@@ -146,7 +167,6 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      // Convert arrays/objects to string
       if (typeof val === "string") {
         outputs[key] = val;
       } else if (Array.isArray(val)) {
@@ -158,7 +178,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Deduct 1 credit
     await serviceClient
       .from("profiles")
       .update({ credits: profile.credits - 1 })
