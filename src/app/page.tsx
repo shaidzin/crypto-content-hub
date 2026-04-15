@@ -6,23 +6,29 @@ import { FaqSection } from "@/components/faq-section";
 import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 import { createServerComponentClient } from "@/lib/supabase-ssr";
+import type { User } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const supabase = createServerComponentClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  let user: User | null = null;
   let credits = 0;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("credits")
-      .eq("id", user.id)
-      .single();
-    credits = profile?.credits ?? 0;
+
+  try {
+    const supabase = createServerComponentClient();
+    const { data } = await supabase.auth.getUser();
+    user = data?.user ?? null;
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("credits")
+        .eq("id", user.id)
+        .single();
+      credits = profile?.credits ?? 0;
+    }
+  } catch (err) {
+    console.error("Failed to load user/credits:", err);
   }
 
   return (
