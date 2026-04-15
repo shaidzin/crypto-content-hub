@@ -8,10 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2 } from "lucide-react";
+import { Loader2, Coins } from "lucide-react";
+import { CREDIT_PACKAGES } from "@/lib/credits";
 
 interface PaywallModalProps {
   open: boolean;
@@ -19,23 +18,19 @@ interface PaywallModalProps {
 }
 
 export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
-  const [loading, setLoading] = useState<"starter" | "lifetime" | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
 
-  const handleCheckout = async (plan: "starter" | "lifetime") => {
-    setLoading(plan);
+  const handleCheckout = async (packageId: string) => {
+    setLoading(packageId);
     try {
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ packageId }),
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create checkout session.");
-      }
-
+      if (!response.ok) throw new Error(data.error);
       window.location.href = data.url;
     } catch (err) {
       console.error("Checkout error:", err);
@@ -43,90 +38,54 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
     }
   };
 
-  const features = [
-    "All 5 platforms (Twitter, LinkedIn, Instagram, Email, Reddit)",
-    "AI-powered content optimization",
-    "One-click copy for each platform",
-    "Instant generation (under 10 seconds)",
-  ];
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-2xl text-center">
-            Unlock Unlimited Repurposing
+            Buy Credits
           </DialogTitle>
           <DialogDescription className="text-center">
-            You&apos;ve used your 2 free repurposes. Upgrade to keep creating
-            content effortlessly.
+            You&apos;re out of credits. Top up to keep repurposing your content.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 mt-4">
-          {/* Starter */}
-          <Card className="border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center justify-between">
-                <span>Starter</span>
-                <span className="text-2xl font-bold">$9</span>
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                100 repurposes, one-time payment
-              </p>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => handleCheckout("starter")}
-                disabled={loading !== null}
-                className="w-full"
-                variant="outline"
-              >
-                {loading === "starter" ? (
+        <div className="grid gap-3 mt-4">
+          {CREDIT_PACKAGES.map((pkg) => (
+            <button
+              key={pkg.id}
+              onClick={() => handleCheckout(pkg.id)}
+              disabled={loading !== null}
+              className={`flex items-center justify-between p-4 rounded-lg border transition-colors hover:bg-secondary/50 ${
+                pkg.badge === "Best Value"
+                  ? "border-primary/50"
+                  : "border-border/50"
+              } ${loading === pkg.id ? "opacity-50" : ""}`}
+            >
+              <div className="flex items-center gap-3">
+                <Coins className="w-5 h-5 text-yellow-400" />
+                <div className="text-left">
+                  <div className="font-medium flex items-center gap-2">
+                    {pkg.label}
+                    {pkg.badge && (
+                      <Badge variant={pkg.badge === "Best Value" ? "default" : "secondary"} className="text-xs">
+                        {pkg.badge}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    ${(pkg.price / pkg.credits / 100).toFixed(2)}/credit
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {loading === pkg.id ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  "Get Starter"
+                  <span className="font-bold text-lg">{pkg.priceLabel}</span>
                 )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Lifetime */}
-          <Card className="border-primary/50 relative">
-            <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-              Best Value
-            </Badge>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center justify-between">
-                <span>Lifetime</span>
-                <span className="text-2xl font-bold">$19</span>
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Unlimited repurposes, forever
-              </p>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => handleCheckout("lifetime")}
-                disabled={loading !== null}
-                className="w-full"
-              >
-                {loading === "lifetime" ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "Get Lifetime Access"
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {features.map((feature, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Check className="w-4 h-4 text-green-400 shrink-0" />
-              {feature}
-            </div>
+              </div>
+            </button>
           ))}
         </div>
       </DialogContent>

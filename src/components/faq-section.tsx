@@ -12,14 +12,14 @@ const faqs = [
       "ContentSpark generates 5 platform-optimized versions of your content: a Twitter/X thread (4-8 tweets), a LinkedIn post, an Instagram caption with hashtags, an email newsletter version with subject line, and a Reddit discussion post.",
   },
   {
-    question: "How does the free trial work?",
+    question: "How do credits work?",
     answer:
-      "You get 2 free content repurposes with no signup or credit card required. Just paste your content and click generate. After your 2 free uses, you can upgrade to continue repurposing.",
+      "1 credit = 1 repurpose into all 5 platforms. Sign up free and get 3 credits to try it out. Need more? Buy credit packs starting at just $1 for 5 credits. Credits never expire.",
   },
   {
-    question: "What's the difference between Starter and Lifetime?",
+    question: "How much does it cost?",
     answer:
-      "Starter gives you 100 repurposes for $9 — perfect for occasional use. Lifetime gives you unlimited repurposes forever for $19 — best value for regular content creators. Both are one-time payments with no recurring fees.",
+      "Credits start at $1 for 5 repurposes ($0.20 each). Buy bigger packs for better value: $3 for 20 credits, $5 for 40 credits, or $10 for 100 credits ($0.10 each). No subscriptions — pay only when you need more.",
   },
   {
     question: "Can I get a refund?",

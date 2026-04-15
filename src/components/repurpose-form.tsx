@@ -1,33 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { OutputDisplay } from "@/components/output-display";
 import { PaywallModal } from "@/components/paywall-modal";
-import { canGenerate, incrementUsage, getRemainingFreeUses, isPaidUser } from "@/lib/usage";
+import { AuthModal } from "@/components/auth-modal";
 import type { PlatformOutputs } from "@/types";
-import { Sparkles, Loader2 } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
+import { Sparkles, Loader2, Coins } from "lucide-react";
 
-export function RepurposeForm() {
+interface RepurposeFormProps {
+  user: User | null;
+  initialCredits: number;
+}
+
+export function RepurposeForm({ user, initialCredits }: RepurposeFormProps) {
   const [text, setText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [outputs, setOutputs] = useState<PlatformOutputs | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [remainingFree, setRemainingFree] = useState(2);
-  const [paid, setPaid] = useState(false);
-
-  useEffect(() => {
-    setRemainingFree(getRemainingFreeUses());
-    setPaid(isPaidUser());
-  }, []);
+  const [showAuth, setShowAuth] = useState(false);
+  const [credits, setCredits] = useState(initialCredits);
 
   const handleSubmit = async () => {
     setError(null);
 
-    if (!canGenerate()) {
+    if (!user) {
+      setShowAuth(true);
+      return;
+    }
+
+    if (credits < 1) {
       setShowPaywall(true);
       return;
     }
@@ -50,14 +56,20 @@ export function RepurposeForm() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 402) {
+          setShowPaywall(true);
+          return;
+        }
+        if (response.status === 401) {
+          setShowAuth(true);
+          return;
+        }
         throw new Error(data.error || "Failed to generate content.");
       }
 
       setOutputs(data.outputs);
-
-      if (!isPaidUser()) {
-        incrementUsage();
-        setRemainingFree(getRemainingFreeUses());
+      if (typeof data.creditsRemaining === "number") {
+        setCredits(data.creditsRemaining);
       }
     } catch (err: unknown) {
       const message =
@@ -104,13 +116,21 @@ export function RepurposeForm() {
                 {charCount.toLocaleString()} / 10,000 characters
                 {charCount > 0 && charCount < 100 && " (minimum 100)"}
               </span>
-              {!paid && (
-                <span className="text-sm text-muted-foreground">
-                  {remainingFree} free {remainingFree === 1 ? "use" : "uses"} remaining
+              {user && (
+                <span className="flex items-center gap-1.5 text-sm">
+                  <Coins className="w-4 h-4 text-yellow-400" />
+                  <span className={credits > 0 ? "text-yellow-400" : "text-red-400"}>
+                    {credits} credit{credits !== 1 ? "s" : ""}
+                  </span>
                 </span>
               )}
-              {paid && (
-                <span className="text-sm text-green-400">Pro access</span>
+              {!user && (
+                <button
+                  onClick={() => setShowAuth(true)}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Sign in for 3 free credits
+                </button>
               )}
             </div>
 
@@ -131,17 +151,21 @@ export function RepurposeForm() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                   Generating content...
                 </>
+              ) : !user ? (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  Sign In & Repurpose (3 Free Credits)
+                </>
               ) : (
                 <>
                   <Sparkles className="w-5 h-5" />
-                  Repurpose Content
+                  Repurpose Content (1 Credit)
                 </>
               )}
             </Button>
           </CardContent>
         </Card>
 
-        {/* Loading skeleton */}
         {isGenerating && (
           <div className="mt-8 space-y-4">
             <div className="h-8 bg-secondary/50 rounded animate-pulse w-48" />
@@ -160,6 +184,7 @@ export function RepurposeForm() {
 
         {outputs && !isGenerating && <OutputDisplay outputs={outputs} />}
 
+        <AuthModal open={showAuth} onOpenChange={setShowAuth} />
         <PaywallModal open={showPaywall} onOpenChange={setShowPaywall} />
       </div>
     </section>

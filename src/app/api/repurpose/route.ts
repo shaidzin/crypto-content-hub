@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/lib/openai";
 import { SYSTEM_PROMPT, buildUserPrompt } from "@/lib/prompts";
+import { createServiceClient } from "@/lib/supabase-server";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import type { PlatformOutputs } from "@/types";
 
 export const maxDuration = 30;
 
 // Simple in-memory rate limiting
 const rateLimitMap = new Map<string, number[]>();
-const RATE_LIMIT_WINDOW = 60_000; // 1 minute
+const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX = 5;
 
 function isRateLimited(ip: string): boolean {
@@ -15,7 +18,6 @@ function isRateLimited(ip: string): boolean {
   const timestamps = rateLimitMap.get(ip) || [];
   const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW);
   rateLimitMap.set(ip, recent);
-
   if (recent.length >= RATE_LIMIT_MAX) return true;
   recent.push(now);
   rateLimitMap.set(ip, recent);
@@ -23,11 +25,9 @@ function isRateLimited(ip: string): boolean {
 }
 
 function parseAIResponse(text: string): PlatformOutputs {
-  // Try direct parse first
   try {
     return JSON.parse(text);
   } catch {
-    // Strip markdown code fences if present
     const cleaned = text.replace(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/, "$1").trim();
     return JSON.parse(cleaned);
   }
@@ -43,6 +43,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Authenticate user
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll() {},
+        },
+      }
+    );
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Please sign in to use ContentSpark." },
+        { status: 401 }
+      );
+    }
+
+    // Check credits using service role (bypasses RLS)
+    const serviceClient = createServiceClient();
+    const { data: profile } = await serviceClient
+      .from("profiles")
+      .select("credits")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || profile.credits < 1) {
+      return NextResponse.json(
+        { error: "No credits remaining. Please purchase more credits." },
+        { status: 402 }
+      );
+    }
+
+    // Validate input
     const body = await request.json();
     const { text } = body;
 
@@ -67,6 +109,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Call OpenAI
     const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -88,13 +131,8 @@ export async function POST(request: NextRequest) {
 
     const outputs = parseAIResponse(content);
 
-    // Validate all expected keys exist
     const requiredKeys: (keyof PlatformOutputs)[] = [
-      "twitter",
-      "linkedin",
-      "instagram",
-      "email",
-      "reddit",
+      "twitter", "linkedin", "instagram", "email", "reddit",
     ];
     for (const key of requiredKeys) {
       if (!outputs[key] || typeof outputs[key] !== "string") {
@@ -105,7 +143,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ outputs });
+    // Deduct 1 credit
+    await serviceClient
+      .from("profiles")
+      .update({ credits: profile.credits - 1 })
+      .eq("id", user.id);
+
+    return NextResponse.json({
+      outputs,
+      creditsRemaining: profile.credits - 1,
+    });
   } catch (error: unknown) {
     console.error("Repurpose API error:", error);
     const message =

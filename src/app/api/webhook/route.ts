@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
+import { createServiceClient } from "@/lib/supabase-server";
 import Stripe from "stripe";
 
 export async function POST(request: NextRequest) {
@@ -31,16 +32,31 @@ export async function POST(request: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    const plan = session.metadata?.plan;
-    const email = session.customer_details?.email;
+    const userId = session.metadata?.userId;
+    const creditsToAdd = parseInt(session.metadata?.credits || "0", 10);
 
-    console.log(
-      `Payment successful: ${email} purchased ${plan} plan (session: ${session.id})`
-    );
+    if (userId && creditsToAdd > 0) {
+      const supabase = createServiceClient();
 
-    // For MVP, fulfillment is handled client-side via the success page.
-    // The webhook logs the event for tracking. In production, you'd store
-    // this in a database and verify server-side.
+      // Get current credits
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("credits")
+        .eq("id", userId)
+        .single();
+
+      if (profile) {
+        // Add purchased credits
+        await supabase
+          .from("profiles")
+          .update({ credits: profile.credits + creditsToAdd })
+          .eq("id", userId);
+
+        console.log(
+          `Added ${creditsToAdd} credits to user ${userId} (session: ${session.id})`
+        );
+      }
+    }
   }
 
   return NextResponse.json({ received: true });

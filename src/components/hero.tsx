@@ -23,8 +23,8 @@ export function Hero() {
 
         <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
           Paste your article, and AI instantly creates optimized content for
-          Twitter/X, LinkedIn, Instagram, Email, and Reddit. Try 2 for free — no
-          signup needed.
+          Twitter/X, LinkedIn, Instagram, Email, and Reddit. Sign up and get 3
+          free credits — starting at just $1 for more.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -37,7 +37,7 @@ export function Hero() {
         </div>
 
         <p className="mt-6 text-sm text-muted-foreground">
-          No signup required. 2 free repurposes included.
+          3 free credits on signup. Credits start at $1.
         </p>
       </div>
     </section>

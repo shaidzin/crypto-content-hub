@@ -1,53 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
-
-const PLANS = {
-  starter: {
-    name: "ContentSpark Starter",
-    description: "100 content repurposes",
-    amount: 900, // $9.00 in cents
-  },
-  lifetime: {
-    name: "ContentSpark Lifetime",
-    description: "Unlimited content repurposes, forever",
-    amount: 1900, // $19.00 in cents
-  },
-};
+import { getPackageById } from "@/lib/credits";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { plan } = body;
+    // Authenticate user
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll() {},
+        },
+      }
+    );
 
-    if (!plan || !["starter", "lifetime"].includes(plan)) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
       return NextResponse.json(
-        { error: "Invalid plan selected." },
+        { error: "Please sign in first." },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { packageId } = body;
+
+    const creditPackage = getPackageById(packageId);
+    if (!creditPackage) {
+      return NextResponse.json(
+        { error: "Invalid package selected." },
         { status: 400 }
       );
     }
 
-    const planConfig = PLANS[plan as keyof typeof PLANS];
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     const session = await getStripe().checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
+      customer_email: user.email,
       line_items: [
         {
           price_data: {
             currency: "usd",
             product_data: {
-              name: planConfig.name,
-              description: planConfig.description,
+              name: `ContentSpark - ${creditPackage.label}`,
+              description: `${creditPackage.credits} content repurpose credits`,
             },
-            unit_amount: planConfig.amount,
+            unit_amount: creditPackage.price,
           },
           quantity: 1,
         },
       ],
       success_url: `${appUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/#pricing`,
-      metadata: { plan },
+      metadata: {
+        userId: user.id,
+        packageId: creditPackage.id,
+        credits: String(creditPackage.credits),
+      },
     });
 
     return NextResponse.json({ url: session.url });

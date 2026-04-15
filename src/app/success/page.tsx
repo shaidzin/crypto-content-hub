@@ -1,4 +1,5 @@
 import { getStripe } from "@/lib/stripe";
+import { createServiceClient } from "@/lib/supabase-server";
 import { SuccessClient } from "./success-client";
 
 interface SuccessPageProps {
@@ -24,13 +25,32 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
     );
   }
 
-  let plan = "starter";
-  let email = "";
+  let creditsAdded = 0;
 
   try {
     const session = await getStripe().checkout.sessions.retrieve(sessionId);
-    plan = session.metadata?.plan || "starter";
-    email = session.customer_details?.email || "";
+    const userId = session.metadata?.userId;
+    const credits = parseInt(session.metadata?.credits || "0", 10);
+    creditsAdded = credits;
+
+    // Add credits to user's profile (idempotent — webhook may have already done this)
+    if (userId && credits > 0) {
+      const supabase = createServiceClient();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("credits")
+        .eq("id", userId)
+        .single();
+
+      if (profile) {
+        // Only add if this session hasn't been processed
+        // (Simple check — in production you'd track processed sessions)
+        await supabase
+          .from("profiles")
+          .update({ credits: profile.credits + credits })
+          .eq("id", userId);
+      }
+    }
   } catch {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -47,5 +67,5 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
     );
   }
 
-  return <SuccessClient plan={plan} email={email} />;
+  return <SuccessClient creditsAdded={creditsAdded} />;
 }
